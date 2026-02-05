@@ -101,6 +101,7 @@ def page_lista_fixa():
                 st.warning("⚠️ Não existe a coluna PROXIMO CONTATO PERMITIDO (ou STATUS) no CRM_GERAL")
 
             st.write("✅ LIBERADOS HOJE (ELEGIVEL=SIM e (PCP vazio ou PCP<=hoje)) por STATUS:")
+            st.error("CHEGUEI NO BLOCO LIBERADOS HOJE ✅")
             if ("STATUS" in df_crm.columns) and ("ELEGIVEL" in df_crm.columns) and ("PROXIMO CONTATO PERMITIDO" in df_crm.columns):
                 df_ok = df_crm.copy()
                 df_ok["STATUS_N"] = df_ok["STATUS"].astype(str).str.upper().str.strip()
@@ -214,4 +215,5 @@ def page_lista_fixa():
 
         st.session_state["lista_fixa"] = df_base
         st.success("Marcações aplicadas. Agora clique no botão 'Atualizar CRM (Fixa)' acima para gravar no Sheets.")
+
 
