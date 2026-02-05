@@ -100,6 +100,25 @@ def page_lista_fixa():
             else:
                 st.warning("⚠️ Não existe a coluna PROXIMO CONTATO PERMITIDO (ou STATUS) no CRM_GERAL")
 
+            st.write("✅ LIBERADOS HOJE (ELEGIVEL=SIM e (PCP vazio ou PCP<=hoje)) por STATUS:")
+            if ("STATUS" in df_crm.columns) and ("ELEGIVEL" in df_crm.columns) and ("PROXIMO CONTATO PERMITIDO" in df_crm.columns):
+                df_ok = df_crm.copy()
+                df_ok["STATUS_N"] = df_ok["STATUS"].astype(str).str.upper().str.strip()
+                df_ok["ELEGIVEL_N"] = df_ok["ELEGIVEL"].astype(str).str.upper().str.strip()
+                df_ok["PCP"] = pd.to_datetime(df_ok["PROXIMO CONTATO PERMITIDO"], errors="coerce")
+                hoje = pd.to_datetime(pd.Timestamp.today().date())
+
+                liberados = df_ok[
+                    (df_ok["ELEGIVEL_N"].eq("SIM")) &
+                    (df_ok["PCP"].isna() | (df_ok["PCP"] <= hoje))
+                ]
+
+                st.dataframe(
+                    liberados["STATUS_N"].value_counts().reset_index()
+                    .rename(columns={"index": "STATUS", "STATUS_N": "QTD_LIBERADOS_HOJE"})
+                )
+            else:
+                st.warning("⚠️ Faltam colunas para calcular liberados hoje (STATUS, ELEGIVEL, PROXIMO CONTATO PERMITIDO).")
             # ---------------------------
             # GERA A LISTA
             # ---------------------------
@@ -195,3 +214,4 @@ def page_lista_fixa():
 
         st.session_state["lista_fixa"] = df_base
         st.success("Marcações aplicadas. Agora clique no botão 'Atualizar CRM (Fixa)' acima para gravar no Sheets.")
+
