@@ -29,6 +29,21 @@ def page_lista_fixa():
 
             df_crm = load_sheet_df("CRM_GERAL")
             df_cfg = load_sheet_df("CONFIGURACAO")
+            st.divider()
+st.subheader("🧪 Diagnóstico (Lista Fixa)")
+
+st.write("✅ Status no CRM_GERAL (contagem):")
+if "STATUS" in df_crm.columns:
+    st.write(df_crm["STATUS"].astype(str).value_counts(dropna=False))
+else:
+    st.error("❌ Não achei a coluna STATUS no CRM_GERAL")
+
+st.write("✅ Regras no CONFIGURACAO (STATUS e QTD POR DIA):")
+if "STATUS" in df_cfg.columns and "QTD POR DIA" in df_cfg.columns:
+    st.dataframe(df_cfg[["STATUS", "QTD POR DIA"]])
+else:
+    st.error("❌ Não achei as colunas STATUS e/ou QTD POR DIA no CONFIGURACAO")
+
             st.session_state["lista_fixa"] = gerar_lista_fixa(df_crm, df_cfg)
 
             # registra que gerou hoje
@@ -126,3 +141,4 @@ def page_lista_fixa():
 
         st.session_state["lista_fixa"] = df_base
         st.success("Marcações aplicadas. Agora clique no botão 'Atualizar CRM (Fixa)' acima para gravar no Sheets.")
+
