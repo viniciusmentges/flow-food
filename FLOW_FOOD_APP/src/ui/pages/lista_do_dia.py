@@ -48,6 +48,58 @@ def page_lista_fixa():
             else:
                 st.error("❌ Não achei as colunas STATUS e/ou QTD POR DIA no CONFIGURACAO")
 
+            # ---------
+            # ELEGIVEL
+            # ---------
+            st.write("✅ ELEGIVEL (contagem geral):")
+            if "ELEGIVEL" in df_crm.columns:
+                st.write(
+                    df_crm["ELEGIVEL"]
+                    .astype(str)
+                    .str.upper()
+                    .str.strip()
+                    .value_counts(dropna=False)
+                )
+            else:
+                st.warning("⚠️ Não existe a coluna ELEGIVEL no CRM_GERAL")
+
+            # Quantos são ELEGIVEL=SIM por STATUS
+            if "STATUS" in df_crm.columns and "ELEGIVEL" in df_crm.columns:
+                df_tmp = df_crm.copy()
+                df_tmp["STATUS_N"] = df_tmp["STATUS"].astype(str).str.upper().str.strip()
+                df_tmp["ELEGIVEL_N"] = df_tmp["ELEGIVEL"].astype(str).str.upper().str.strip()
+
+                st.write("✅ Por STATUS: quantos estão com ELEGIVEL = SIM")
+                st.dataframe(
+                    df_tmp[df_tmp["ELEGIVEL_N"].eq("SIM")]["STATUS_N"]
+                    .value_counts()
+                    .reset_index()
+                    .rename(columns={"index": "STATUS", "STATUS_N": "QTD_ELEGIVEL_SIM"})
+                )
+
+            # ---------------------------
+            # PROXIMO CONTATO PERMITIDO (COOLDOWN)
+            # ---------------------------
+            st.write("✅ PROXIMO CONTATO PERMITIDO (cooldown):")
+            if "PROXIMO CONTATO PERMITIDO" in df_crm.columns and "STATUS" in df_crm.columns:
+                df_tmp2 = df_crm.copy()
+                df_tmp2["STATUS_N"] = df_tmp2["STATUS"].astype(str).str.upper().str.strip()
+                df_tmp2["PCP"] = pd.to_datetime(df_tmp2["PROXIMO CONTATO PERMITIDO"], errors="coerce")
+
+                hoje = pd.to_datetime(pd.Timestamp.today().date())
+
+                bloqueados = df_tmp2[(df_tmp2["PCP"].notna()) & (df_tmp2["PCP"] > hoje)]
+
+                st.write("⛔ Bloqueados por cooldown (PCP > hoje) por STATUS:")
+                st.dataframe(
+                    bloqueados["STATUS_N"]
+                    .value_counts()
+                    .reset_index()
+                    .rename(columns={"index": "STATUS", "STATUS_N": "QTD_BLOQUEADOS"})
+                )
+            else:
+                st.warning("⚠️ Não existe a coluna PROXIMO CONTATO PERMITIDO (ou STATUS) no CRM_GERAL")
+
             # ---------------------------
             # GERA A LISTA
             # ---------------------------
@@ -77,7 +129,6 @@ def page_lista_fixa():
                 st.warning("Marque pelo menos 1 contato como ENVIADO antes de atualizar.")
                 st.stop()
 
-            # Formato esperado pelo backend real
             df_real = pd.DataFrame({
                 "whatsapp": df.get("WHATSAPP"),
                 "nome": df.get("NOME"),
@@ -104,11 +155,10 @@ def page_lista_fixa():
 
     df_base = st.session_state["lista_fixa"].copy().reset_index(drop=True)
 
-    # ✅ Forçar ENVIADO? como boolean (ajuda no “não marca de primeira”)
+    # ✅ Forçar ENVIADO? como boolean
     if "ENVIADO?" in df_base.columns:
         df_base["ENVIADO?"] = df_base["ENVIADO?"].fillna(False).astype(bool)
 
-    # ✅ Tabela compacta (reduz scroll e “pulinhos”)
     cols_show = []
     for c in ["LINK", "ENVIADO?", "NOME", "WHATSAPP", "STATUS", "CAMPANHA"]:
         if c in df_base.columns:
@@ -116,7 +166,6 @@ def page_lista_fixa():
 
     df_view = df_base[cols_show].copy() if cols_show else df_base.copy()
 
-    # ✅ FORM: evita rerun a cada clique
     with st.form("form_lista_fixa"):
         edited = st.data_editor(
             df_view,
@@ -140,7 +189,6 @@ def page_lista_fixa():
 
         aplicar = st.form_submit_button("Atualizar CRM (Fixa)")
 
-    # ✅ Só atualiza o session_state quando clicar (sem pulo)
     if aplicar:
         if "ENVIADO?" in edited.columns and "ENVIADO?" in df_base.columns:
             df_base["ENVIADO?"] = edited["ENVIADO?"].fillna(False).astype(bool)
